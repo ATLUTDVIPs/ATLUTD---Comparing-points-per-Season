@@ -400,7 +400,7 @@ class Chart():
 if __name__ == '__main__':
     logging.basicConfig( format='%(asctime)s: %(levelname)s: %(funcName)s - Line %(lineno)d \n\t%(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', filename=os.path.basename(__file__).split(".py")[0] + '.log', encoding='utf-8', filemode="w", level=logging.DEBUG )
 
-    C = Chart( "Portland" )
+    C = Chart( "Atlanta" )
     # Pass in the colors here, loading from file
     C.Load_Colors( os.path.dirname(__file__) + r"\data\Dictionary_Colors_Seasons.json" )
     #C.Load_Colors( os.path.dirname(__file__) + r"\data\Dictionary_Colors_Teams.json" )
