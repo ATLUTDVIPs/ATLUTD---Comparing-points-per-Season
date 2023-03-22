@@ -1,0 +1,11 @@
+
+
+matplotlib==3.7.1
+matplotlib-inline==0.1.6
+numpy==1.22.3
+pandas==1.5.3
+requests==2.28.2
+json5==0.9.11
+highlight-text==0.2
+mplsoccer==1.1.10
+more-itertools==9.1.0
