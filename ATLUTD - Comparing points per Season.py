@@ -297,7 +297,7 @@ class Chart():
         #print ( Readable_Y_Axis )
  
         if ( PartialSeason ):
-            Subtitle_y = "Number of Points Each Season through " + str( X_Axis ) + " games"
+            Subtitle_y = "Number of Points Each Season through " + str( X_Axis - 1 ) + " games"
         else: 
             Subtitle_y = "Number of Points Each Season"
 
