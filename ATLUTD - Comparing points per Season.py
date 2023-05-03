@@ -298,6 +298,7 @@ class Chart():
  
         if ( PartialSeason ):
             Subtitle_y = "Number of Points Each Season through " + str( X_Axis - 1 ) + " games"
+            print( Subtitle_y )
         else: 
             Subtitle_y = "Number of Points Each Season"
 
@@ -311,7 +312,7 @@ class Chart():
             figsize=( 16, 8 ),                               # size of the chart
             x_label='Match Week',                            # x-label
             y_label=Subtitle_y,                              # y-label
-            ylim=( -0.1, Y_Axis ),                           # y-axis heighest point
+            ylim=( -0.1, Y_Axis + 2 ),                       # y-axis heighest point
             lw=1.0,                                          # linewidth of the connecting lines
             upside_down=True,                                # Start charting from the bottom
             fontproperties=font_normal.prop,                 # fontproperties for ticklables/labels
@@ -409,4 +410,6 @@ if __name__ == '__main__':
 
     C.Chart_Season()
     C.Chart_Season_to_Date()
+
+    
 
