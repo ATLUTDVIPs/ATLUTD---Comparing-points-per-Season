@@ -1,11 +1,20 @@
 
 
-matplotlib==3.7.1
-matplotlib-inline==0.1.6
-numpy==1.22.3
-pandas==1.5.3
-requests==2.28.2
-json5==0.9.11
-highlight-text==0.2
-mplsoccer==1.1.10
-more-itertools==9.1.0
+
+numpy
+pandas as pd
+requests                                                      # Retrieve data over the internet
+json                                                          # Interacts with json data
+mplsoccer import Bumpy, FontManager, add_image                # Soccer specific charts and graphs
+import os                                                            # used to interact with the file system
+import matplotlib.pyplot as plt                                      # Save the Chart as a jpg
+import sys
+import itertools                                                     # used to provide iteration functions
+import seaborn as sns                                                # Plotting Styles
+
+from matplotlib.lines import Line2D                                  # Setup graph lines
+import datetime                                                      # Work with dates
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox         # Display an Image
+from PIL import Image                                                # Display an Image
+
+from Logger import CustomLogger                                      # Standardized Logging
