@@ -3,9 +3,6 @@
 ##### *Points_Per_Season.py*
 
 
-![](https://github.com/ATLUTDVIPs/ATLUTD-Fix-Files/blob/535089f578944aa459097b95b12666405a4b4b5d/pics/Processing%20-%2013%25.jpg)
-
-
 The purpose of this is to show a comparison between the current season, and previous seasons' point tallies.  This script will output an image based on the latest match day, and the full season.
 It is currently setup to run for Atlanta United, and has the ATLUTD VIPs logo.  But it can be changed for any MLS team in the data set.
 Data is gathered from https://www.football-data.co.uk/, who freely publishes a .csv file of fixture dates.
