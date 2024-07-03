@@ -3,21 +3,29 @@
 
 #---------------------------------------------------------------------------------------------------------------#
 # Load Modules
-#
+# py -m pip install --upgrade package_name
 #---------------------------------------------------------------------------------------------------------------#
+# matplotlib mplsoccer==1.1.10
+# matplotlib==3.7.1
 import numpy as np
 import pandas as pd
 import requests                                                      # Retrieve data over the internet
 import json                                                          # Interacts with json data
 #from urllib.request import urlopen
-from PIL import Image
-from highlight_text import fig_text
+#from highlight_text import fig_text
 from mplsoccer import Bumpy, FontManager, add_image                  # Soccer specific charts and graphs
 import os                                                            # used to interact with the file system
 import matplotlib.pyplot as plt                                      # Save the Chart as a jpg
-import logging                                                       # Script logging
 import sys
 import itertools                                                     # used to provide iteration functions
+import seaborn as sns                                                # Plotting Styles
+
+from matplotlib.lines import Line2D                                  # Setup graph lines
+import datetime                                                      # Work with dates
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox         # Display an Image
+from PIL import Image                                                # Display an Image
+
+from Logger import CustomLogger                                      # Standardized Logging
 
 #---------------------------------------------------------------------------------------------------------------#
 # Class
@@ -34,6 +42,7 @@ class Chart():
     # Class Initialization
     #---------------------------------------------------------------------------------------------------------------#
     def __init__( self, Team ):
+        self.Logger = CustomLogger( __file__, "Warning" )
         self.Colors = ""
         self.Team_Name = Team
 
@@ -50,7 +59,7 @@ class Chart():
 
         URL_Data = "https://www.football-data.co.uk/new/USA.csv"
         response = requests.get( URL_Data )
-        #print(  os.path.dirname(__file__) + r"\data\football-data.co.uk\USA.csv" )
+        self.Logger.Log( f"{os.path.dirname(__file__)}\\data\\football-data.co.uk\\USA.csv", "Debug" )
         open( os.path.dirname( __file__ ) + r"\data\football-data.co.uk\USA.csv", "wb" ).write( response.content )
 
         self.Data = pd.read_csv( os.path.dirname( __file__ ) + r"\data\football-data.co.uk\USA.csv" )
@@ -85,7 +94,8 @@ class Chart():
 
             #print( self.Colors )
         except Exception as e:
-             print( "An error has occured while reading the Color data: " + str( e ) )
+            self.Logger.Log( f"An error has occured while reading the Color data: " + str( e ), "Error" )
+
 
     #---------------------------------------------------------------------------------------------------------------#
     # Function: Generate_Internal_Data
@@ -98,8 +108,7 @@ class Chart():
             # will break this up later
             if ( self.Team_Name in row.Home ) or ( self.Team_Name in row.Away ):
                 # Based on who won
-                #print( row.Season )
-                #print( Seasons[row.Season] )
+                self.Logger.Log( row.Season, "Debug" )
                 if ( row.Res == "H" ):
                         if ( self.Team_Name in row.Home ):
                             self.Seasons[str(row.Season)].append( self.Seasons[str(row.Season)][-1] +3 )  # Taking previous value, incrementing 3
@@ -156,8 +165,8 @@ class Chart():
         self.Seasons = self.Remove_Empty_Lists( self.Seasons )
         #print( self.Seasons )
 
-        Chart = self.Generate_Chart( self.Seasons, False )
-        Chart.savefig( os.path.dirname(__file__) + r"\chart\\" + self.Team_Name + "-Entire_Season.jpg", dpi=300, bbox_inches='tight')
+        Chart = self.Generate_Chart( False )
+        Chart.savefig( os.path.dirname(__file__) + r"\charts\\" + self.Team_Name + "-Entire_Season.jpg", dpi=300, bbox_inches='tight')
 
 
     #---------------------------------------------------------------------------------------------------------------#
@@ -169,7 +178,8 @@ class Chart():
         # Loading Fonts
 
         print() 
-        print( "Chart_Season_to_Date" )
+        self.Logger.Log( f"Chart_Season_to_Date" )
+
         self.Season_To_Date = self.Remove_Empty_Lists( self.Season_To_Date )
         #print( self.Season_To_Date )
         #print(json.dumps(self.Season_To_Date, indent=4))
@@ -178,8 +188,8 @@ class Chart():
         Match_Day = [ "Week " + str( Week ) for Week in range( 1, X_Axis ) ]
         #print( Match_Day )
 
-        Chart = self.Generate_Chart( self.Season_To_Date, True )
-        Chart.savefig( os.path.dirname(__file__) + r"\chart\\" + self.Team_Name + "-Season to date.jpg", dpi=300, bbox_inches='tight')
+        Chart = self.Generate_Chart( True )
+        Chart.savefig( os.path.dirname(__file__) + r"\charts\\" + self.Team_Name + "-Season to date.jpg", dpi=300, bbox_inches='tight')
 
     #---------------------------------------------------------------------------------------------------------------#
     # Function: Get_x_axis
@@ -188,7 +198,7 @@ class Chart():
     def Get_x_axis( self, Data ):
         Season = 0
         X_Axis = 0
-        #print( "Trying to determine x axis" )
+        self.Logger.Log( f"Trying to determine x axis", "Debug" )
         for key, value in Data.items():
 
             if ( len( Data[key] )  ) > 0: 
@@ -209,7 +219,7 @@ class Chart():
         Season = 0
         Y_Axis = 0
         #print()
-        #print( "Trying to determine y axis" )
+        self.Logger.Log( f"Trying to determine y axis", "Debug" )
         #print()
 
         for key, value in Data.items():
@@ -247,164 +257,160 @@ class Chart():
     # Function: Generate_Chart
     # Builds a generic bumpy chart, returns the figure to the calling function
     #---------------------------------------------------------------------------------------------------------------#
-    def Generate_Chart( self, Data, PartialSeason=False ):
-        font_normal = FontManager("https://raw.githubusercontent.com/google/fonts/main/apache/roboto/Roboto%5Bwdth,wght%5D.ttf")
-        font_bold = FontManager("https://raw.githubusercontent.com/google/fonts/main/apache/robotoslab/RobotoSlab%5Bwght%5D.ttf")
+    def Generate_Chart( self, PartialSeason=False ):
 
-        # Chart descriptors
-        bumpy = Bumpy(
-            scatter_color="#282A2C",                         # scatter color
-            line_color="#252525",                            # line color
-            rotate_xticks=90,                                # rotate x-ticks by 90 degrees
-            ticklabel_size=50,                               # ticklable font-size
-            label_size=20,                                   # label font-size
-            show_right=False,                                # show position on the rightside
-            plot_labels=True,                                # plot the labels
-            alignment_yvalue=0.4,                            # y label alignment
-            alignment_xvalue=0.065,                          # x label alignment,
-            scatter_size=15,                                 # size of the marker
-            scatter_points='o'
-            #scatter_primary='D',                            # marker to be used
-            #scatter_points='D',                             # other markers
-            #scatter_primary='o',                            # marker to be used for teams
-        )
-        Y_Axis = self.Get_y_axis( Data )
-        X_Axis = self.Get_x_axis( Data )
+        # Change the style of plot
+        sns.set_theme(style="darkgrid")
 
-        # Labels
-        Readable_X_Axis = []
-        for Week in range ( 1, X_Axis ):
-            if ( Week == X_Axis + 1 ):
-                Readable_X_Axis.append( "" )
+        # Get the current year
+        Current_Year = datetime.datetime.now().year
+
+        # set figure size
+        my_dpi=200
+        plt.figure(figsize=(8, 4), facecolor='black', dpi=my_dpi)
+        plt.gca().set_facecolor('black')
+
+        Legend_Elements = []
+        X_Values = 0
+        Max_X = 0
+        #print( self.Seasons )
+        Current_Season_Games = len( self.Seasons[f"{Current_Year}"] )
+        
+        for Season, Values in self.Seasons.items():
+            #print( Season )
+            self.Logger.Log( f"{Season}", "Debug" )
+            self.Logger.Log( f"{Values}", "Debug" )
+            if ( PartialSeason ):
+                X_Values = list( range( 1, Current_Season_Games + 1 ) )
+                Values_to_plot = Values[:Current_Season_Games]  # Only take the values up until the number of games in the Current Season
             else:
-                Readable_X_Axis.append( "Week " + str( Week ) )
-
-        #Match_Day = [ "Week " + str( Week ) for Week in range( 1, X_Axis ) ]
-        #print( Match_Day )
-
-
-        #y_axis = [ " " + str( Week ) for Week in range( 1, y_Height ) ],
-        # This is an attend to space out the y_axis - it was too busy
-        Readable_Y_Axis = []
-        for Week in range ( 1, Y_Axis + 1 ):
-            #if ( ( Week % 5 == 0 ) or ( Week == 1 ) or ( Week == Y_Axis ) ):
-            if ( ( Week % 5 == 0 ) or ( Week == 1 ) ):
-                Readable_Y_Axis.append( " " + str( Week ) )
+                X_Values = list( range( 1, len(Values) + 1 ) )
+                Values_to_plot = Values
+            #print( f"Season: {Season}" )
+            #print( f"Values: {Values}" )
+            #print( f"Current_Season_Games: {Current_Season_Games}" )
+            #print( f"Values_to_plot: {Values_to_plot}" )
+                
+            if ( Season == str( Current_Year ) ):
+                plt.plot( X_Values, Values_to_plot, marker='', color=self.Colors[Season], linewidth=2, alpha=1 )
+                Label = f'{Season}'
             else:
-                Readable_Y_Axis.append( "" )
+                plt.plot( X_Values, Values_to_plot, marker='', color=self.Colors[Season], linewidth=.75, alpha=0.4 )
+                Label = f'{Season}'
 
-        # Verifying the y-axis
-        #print ( Readable_Y_Axis )
- 
+            if ( PartialSeason ):
+                Offset = .1
+            else:
+                Offset = .5
+            Line_Label = f'{Season} - {Values_to_plot[-1]} points'
+            plt.text( X_Values[-1] +  Offset, Values_to_plot[-1], Line_Label, ha='left', va='center', fontdict={'family': 'sans-serif', 'color': self.Colors[Season], 'weight': 'normal', 'size': 5})
+            # Add the line and label to legend_elements
+            Legend_Elements.append( Line2D([0], [0], color=self.Colors[Season], linewidth=2 if Season == str( Current_Year ) else .5, alpha=1 if Season == str( Current_Year ) else 0.6, label=Label) )
+            if ( X_Values[-1] > Max_X ):
+                Max_X = X_Values[-1]
+            #if Season == str( Current_Year ):
+            #    Current_Season_Games = len( Values )
+
+        
+        # Set the x-axis limits based on the data being plotted
+        #plt.xlim( 1, len(X_Values) + 1 )
+        plt.autoscale(enable=True, axis='x', tight=True)
+
+        # Default Text Properties
+        Text_Properties_Y_Axis         = { 'family': 'sans-serif', "color": '#FFFFFF', 'weight': 'normal', 'size': 6 }
+        Text_Properties_X_Axis         = { 'family': 'sans-serif', "color": '#FFFFFF', 'weight': 'normal', 'ha': 'left', 'size': 6 }
+        #Text_Properties_Title = { 'family': 'sans-serif', "color": color=self.Colors[Season], 'weight': 'normal', 'size': 8 }
+        Text_Properties_Title        = { 'family': 'sans-serif', "color": '#FFFFFF', 'weight': 'normal', 'size': 14 }
+        Text_Properties_Axis_Labels  = { 'family': 'sans-serif', "color": '#FFFFFF', 'weight': 'normal', 'size': 10 }
+
+        # Legend
+        Legend = plt.legend(handles=Legend_Elements, facecolor='black', loc='upper left', frameon=False, prop={'size': 5, 'family': 'sans-serif', 'weight': 'normal', 'style': 'italic' } )
+        # Set legend text color to match the line color dynamically
+        for line, text in zip(Legend.get_lines(), Legend.get_texts()):
+            text.set_color(line.get_color())
+
+
+        # X Axis
+        plt.xlabel( 'Match Week', fontdict=Text_Properties_Axis_Labels )
+        X_Ticks_Positions = list( range( 1, Max_X + 1, 1 ) )
+        #X_Ticks_Positions = list( range(1, len(X_Values) + 1) )
+        plt.xticks( X_Ticks_Positions, rotation=90, **Text_Properties_X_Axis )
+
+        # Y Axis
         if ( PartialSeason ):
-            Subtitle_y = "Number of Points Each Season through " + str( X_Axis - 1 ) + " games"
-            print( Subtitle_y )
+            plt.ylabel( "Number of Points Each Season through " + str( Current_Season_Games ) + " games", fontdict=Text_Properties_Axis_Labels )
+            self.Logger.Log( f"Number of Points Each Season through {Current_Season_Games} games" )
+            self.Logger.Log( f"#WeAreTheA #ATLUTD" )
+            #print( Subtitle_y )
         else: 
-            Subtitle_y = "Number of Points Each Season"
+            plt.ylabel( "Number of Points Each Season", fontdict=Text_Properties_Axis_Labels )
+            self.Logger.Log( f"Number of Points Each Season" )
+            self.Logger.Log( f"#WeAreTheA #ATLUTD" )
+        
+        
+        
+        #Max_Y = max(value for values in self.Seasons.values() for value in values)  # Determine the maximum value for the y-axis
+        #Y_Ticks_Positions = list( range( 0, Max_Y + 5, 5 ) )
+        if ( PartialSeason ):
+            Max_Y = max( Values_to_plot )  # Determine the maximum value for the y-axis
+            Y_Ticks_Positions = list( range( 0, Max_Y + 2, 5 ) )
+        else:
+            Max_Y = max(value for values in self.Seasons.values() for value in values)  # Determine the maximum value for the y-axis
+            Y_Ticks_Positions = list( range( 0, Max_Y + 5, 5 ) )
 
-        # Plot bumpy chart with actual data
-        fig, ax = bumpy.plot(
-            x_list= Readable_X_Axis,                         # Along the graph, Chart's x-labels
-            y_list= Readable_Y_Axis,                         # Along the graph, Chart's y-Labels
-            values=Data,                                     # values having positions for each team
-            secondary_alpha=.5,                              # alpha value for non-shaded lines/markers
-            highlight_dict=self.Colors,                      # team to be highlighted with their colors
-            figsize=( 16, 8 ),                               # size of the chart
-            x_label='Match Week',                            # x-label
-            y_label=Subtitle_y,                              # y-label
-            ylim=( -0.1, Y_Axis + 2 ),                       # y-axis heighest point
-            lw=1.0,                                          # linewidth of the connecting lines
-            upside_down=True,                                # Start charting from the bottom
-            fontproperties=font_normal.prop,                 # fontproperties for ticklables/labels
-            #fontfamily="Liberation Serif"
-        )
+        #plt.yticks( Y_Ticks_Positions, fontsize=6, color='white' )
+        plt.yticks( Y_Ticks_Positions, **Text_Properties_Y_Axis )
 
-        # title and subtitle
+        # Title
         if self.Team_Name == "Atlanta":
-            TITLE = "<Atlanta> <United>: Season by Season"
-            highlight_textprops = [{"color": '#8C0000'},{"color": '#AB9961'}]
+            #TITLE = "Atlanta United: Season by Season"
+            TITLE = f"Season by Season: {self.Team_Name} United"
+            #highlight_textprops = [{"color": '#8C0000'},{"color": '#AB9961'}]
+            #highlight_textprops = { 'family': 'sans-serif', "color": '#8C0000', 'weight': 'normal', 'size': 10 }
         else:
             TITLE = "<" + self.Team_Name + ">" + ": Season by Season"
-            highlight_textprops = [{"color": '#FFFFFF'}] 
-        #SUB_TITLE = "Season by Season"
+            TITLE = f"Season by Season: {self.Team_Name}"
+            #highlight_textprops = { 'family': 'sans-serif', "color": '#FFFFFF', 'weight': 'normal', 'size': 10 }
+        plt.title( TITLE, fontdict=Text_Properties_Title, loc='left' )
 
 
-        # add title
-        #fig.text(0.09, 0.95, TITLE, size=29, color="#F2F2F2", fontproperties=font_bold.prop)
-
-        # Placing the Chart Title
-        fig_text(
-            0.09, 
-            0.95, 
-            TITLE, 
-            color="#F2F2F2",
-            highlight_textprops=highlight_textprops,
-            size=29, 
-            fig=fig, 
-            fontproperties=font_bold.prop
-        )
-
-        # Placing the Chart Sub Title
-        #fig_text(
-        #    0.09, 
-        #    0.94, 
-        #    SUB_TITLE, 
-        #    color="#F2F2F2",
-        #    #highlight_textprops=[{"color": '#8C0000'},{"color": '#AB9961'}],
-        #    size=25, 
-        #    fig=fig, 
-        #    fontproperties=font_bold.prop
-        #)
-
-        # Add Team Labels to Right
-        # Read through Dictionary_Team_Colors 
-        Legend = "Seasons"
-        Highlight_Label_Properties = []
-
-        # Creating the Legend
-        for id, color in self.Colors.items():
-            if ( id in Data.keys() ):
-                Legend += f"\n<{id}>"
-                Highlight_Label_Properties.append({"color": color})
+        # Plot
+        # Remove grid lines
+        plt.grid(False)
+        # Turn off individual Axis spines
+        Axis = plt.gca()
+        Axis.spines['top'].set_visible(False)
+        Axis.spines['right'].set_visible(False)
+        Axis.spines['bottom'].set_visible(True)
+        Axis.spines['left'].set_visible(True)
+        Axis.spines['bottom'].set_linewidth(0.25)   # Adjust the linewidth as needed
+        Axis.spines['left'].set_linewidth(0.25)     # Adjust the linewidth as needed
 
 
-        # Placement of the Legend
-        fig_text(
-            0.1, 
-            0.85, 
-            Legend, 
-            color="#FFFFFF",
-            highlight_textprops=Highlight_Label_Properties,
-            size=12, 
-            fig=fig, 
-            fontproperties=font_normal.prop
-        )
+        # Logo
+        Logo_Path = os.path.join(os.path.dirname(__file__), r"data\pics", "ATLUTD_VIPs_180.png")
+        Logo_Image = Image.open(Logo_Path)
+        ImageBox = OffsetImage(Logo_Image, zoom=0.15)  # Adjust the zoom factor as needed
+        Image_Annotation = AnnotationBbox(ImageBox, (0.9, 0.08), frameon=False, xycoords='axes fraction', boxcoords="axes fraction")
+        plt.gca().add_artist(Image_Annotation)
 
-        # Overlay an image on top of the chart (fig)
-        Logo = add_image(
-            Image.open( os.path.dirname(__file__) + r"\pics\ATLUTD_VIPs_180.png" ),
-            fig,                                   # The figure being overlayed
-            0.86,                                  # left coordinate of picture
-            0.17,                                  # bottom coordinate of picture
-            0.08,                                  # scale-width of image
-            0.08                                   # scale-height of image
-        )
+        #plt.tight_layout()
+        #plt.show()
+        #sys.exit()
 
-        # if space is left in the plot use this
-        plt.tight_layout( pad=0.5 )
+        return plt
 
-        return fig
+
 
 #---------------------------------------------------------------------------------------------------------------#
 # Main Processing
 #---------------------------------------------------------------------------------------------------------------#
 if __name__ == '__main__':
-    logging.basicConfig( format='%(asctime)s: %(levelname)s: %(funcName)s - Line %(lineno)d \n\t%(message)s', datefmt='%m/%d/%Y %I:%M:%S %p', filename=os.path.basename(__file__).split(".py")[0] + '.log', encoding='utf-8', filemode="w", level=logging.DEBUG )
 
     C = Chart( "Atlanta" )
     # Pass in the colors here, loading from file
-    C.Load_Colors( os.path.dirname(__file__) + r"\data\Dictionary_Colors_Seasons.json" )
-    #C.Load_Colors( os.path.dirname(__file__) + r"\data\Dictionary_Colors_Teams.json" )
+    C.Load_Colors( os.path.dirname(__file__) + r"\data\Dictionaries\Dictionary_Colors_Seasons.json" )
+    #C.Load_Colors( os.path.dirname(__file__) + r"\data\Dictionaries\Dictionary_Colors_Teams.json" )
     C.Load_Data()
     C.Generate_Internal_Data()
 
